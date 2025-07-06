@@ -1,47 +1,47 @@
 package com.nktfh100.AmongUs.listeners;
 
-import com.comphenix.protocol.PacketType;
-import com.comphenix.protocol.events.ListenerPriority;
-import com.comphenix.protocol.events.PacketAdapter;
-import com.comphenix.protocol.events.PacketEvent;
-import com.comphenix.protocol.wrappers.EnumWrappers;
+import com.github.retrooper.packetevents.event.PacketListener;
+import com.github.retrooper.packetevents.event.PacketReceiveEvent;
+import com.github.retrooper.packetevents.protocol.packettype.PacketType;
+import com.github.retrooper.packetevents.wrapper.play.client.WrapperPlayClientInteractEntity;
 import com.nktfh100.AmongUs.enums.GameState;
 import com.nktfh100.AmongUs.info.DeadBody;
 import com.nktfh100.AmongUs.info.FakeArmorStand;
 import com.nktfh100.AmongUs.info.ItemInfoContainer;
 import com.nktfh100.AmongUs.info.PlayerInfo;
 import com.nktfh100.AmongUs.main.Main;
+import io.github.retrooper.packetevents.util.SpigotConversionUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.Particle;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
-import org.bukkit.plugin.Plugin;
 import org.bukkit.scheduler.BukkitRunnable;
+import org.jetbrains.annotations.NotNull;
 
-public class UseEntityListener extends PacketAdapter {
-    public UseEntityListener(Plugin plugin, ListenerPriority priority) {
-        super(plugin, priority, PacketType.Play.Client.USE_ENTITY);
-    }
+public class UseEntityListener implements PacketListener {
+    @Override
+    public void onPacketReceive(@NotNull PacketReceiveEvent event) {
+        if (event.getPacketType() != PacketType.Play.Client.INTERACT_ENTITY) return;
 
-    public synchronized void onPacketReceiving(PacketEvent event) {
+        WrapperPlayClientInteractEntity packet = new WrapperPlayClientInteractEntity(event);
+
+        Player attacker = event.getPlayer();
+        PlayerInfo attackerInfo = Main.getPlayersManager().getPlayerInfo(event.getPlayer());
+        if (attackerInfo == null || attackerInfo.getArena() == null || attackerInfo.getArena().getPlayersInfo() == null) {
+            return;
+        }
+
+        Entity victimEnt = SpigotConversionUtil.getEntityById(attacker.getWorld(), packet.getEntityId());
+
         new BukkitRunnable() {
             @Override
             public void run() {
-                event.setReadOnly(false);
-                Player attacker = event.getPlayer();
-                PlayerInfo attackerInfo = Main.getPlayersManager().getPlayerInfo(event.getPlayer());
-                if (attackerInfo == null || attackerInfo.getArena() == null || attackerInfo.getArena().getPlayersInfo() == null) {
-                    return;
-                }
-
-                Entity victimEnt = event.getPacket().getEntityModifier(event.getPlayer().getWorld()).read(0);
-
                 Player victim = null;
                 PlayerInfo victimInfo = null;
                 if (victimEnt == null) { // fake entity - players in cameras / scan armor stands
-                    int entityId = event.getPacket().getIntegers().read(0);
+                    int entityId = packet.getEntityId();
                     for (PlayerInfo pInfo1 : attackerInfo.getArena().getPlayersInfo()) {
                         outer: if (pInfo1 != attackerInfo) {
                             if (pInfo1.getIsInCameras() && pInfo1.getFakePlayerId().equals(entityId)) {
@@ -62,7 +62,7 @@ public class UseEntityListener extends PacketAdapter {
                         return;
                     }
                 } else if (!(victimEnt instanceof Player)) {
-                    if (attackerInfo.getIsIngame() && event.getPacket().getEnumEntityUseActions().read(0).getAction() == EnumWrappers.EntityUseAction.ATTACK) {
+                    if (attackerInfo.getIsIngame() && packet.getAction() == WrapperPlayClientInteractEntity.InteractAction.ATTACK) {
                         event.setCancelled(true);
                     }
                     return;
@@ -73,69 +73,59 @@ public class UseEntityListener extends PacketAdapter {
                     victimInfo = Main.getPlayersManager().getPlayerInfo(victim);
                 }
 
-                final EnumWrappers.EntityUseAction action;
-                if (Main.getVersion()[0] < 17) {
-                    action = event.getPacket().getEntityUseActions().read(0);
-                } else {
-                    action = event.getPacket().getEnumEntityUseActions().read(0).getAction();
+                if (packet.getAction() != WrapperPlayClientInteractEntity.InteractAction.ATTACK) return;
+
+                if ((!attackerInfo.getIsIngame() && victimInfo.getIsIngame()) || (attackerInfo.getIsIngame() && !victimInfo.getIsIngame())) {
+                    event.setCancelled(true);
+                    return;
+                }
+                if (!attackerInfo.getIsIngame() || !victimInfo.getIsIngame()) {
+                    return;
+                }
+                event.setCancelled(true);
+
+                if (attackerInfo.getArena().getGameState() != GameState.RUNNING || !attackerInfo.getIsImposter() || attackerInfo.isGhost() || victimInfo.isGhost() || victimInfo.getIsImposter()) {
+                    return;
                 }
 
-                if (action == EnumWrappers.EntityUseAction.ATTACK) {
-                    if ((!attackerInfo.getIsIngame() && victimInfo.getIsIngame()) || (attackerInfo.getIsIngame() && !victimInfo.getIsIngame())) {
-                        event.setCancelled(true);
-                        return;
-                    }
-                    if (!attackerInfo.getIsIngame() || !victimInfo.getIsIngame()) {
-                        return;
-                    }
+                if (attackerInfo.getArena().getIsInMeeting()) {
+                    return;
+                }
+
+                if (attackerInfo.getKillCoolDown() > 0) {
+                    return;
+                }
+                if (attacker.getInventory().getItemInMainHand() == null || attacker.getInventory().getItemInMainHand().getItemMeta() == null) {
                     event.setCancelled(true);
-
-
-                    if (attackerInfo.getArena().getGameState() != GameState.RUNNING || !attackerInfo.getIsImposter() || attackerInfo.isGhost() || victimInfo.isGhost() || victimInfo.getIsImposter()) {
-                        return;
+                    return;
+                }
+                // check if item in attackers hand is the kill item
+                String itemName = attacker.getInventory().getItemInMainHand().getItemMeta().getDisplayName();
+                ItemInfoContainer killItem = Main.getItemsManager().getItem("kill");
+                //if (attacker.getItemInHand().getType().equals(killItem.getItem2().getMat())) {
+                if (killItem.getItem2().getTitle(attackerInfo.getKillCoolDown().toString()).equals(itemName)) {
+                    if (victimInfo.getIsInCameras()) {
+                        victimInfo.getArena().getCamerasManager().playerLeaveCameras(victimInfo, false);
                     }
 
-                    if (attackerInfo.getArena().getIsInMeeting()) {
-                        return;
-                    }
+                    attackerInfo.setKillCoolDown(attackerInfo.getArena().getKillCooldown());
+                    Location vicLoc = victim.getLocation();
+                    attacker.teleport(new Location(victim.getWorld(), vicLoc.getX(), vicLoc.getY(), vicLoc.getZ(), attacker.getLocation().getYaw(), attacker.getLocation().getPitch()));
+                    victim.getWorld().spawnParticle(Particle.BLOCK_CRACK, victim.getLocation().getX(), victim.getLocation().getY() + 1.3, victim.getLocation().getZ(), 30, 0.4D, 0.4D,
+                            0.4D, Bukkit.createBlockData(Material.REDSTONE_BLOCK));
 
-                    if (attackerInfo.getKillCoolDown() > 0) {
-                        return;
-                    }
-                    if (attacker.getInventory().getItemInMainHand() == null || attacker.getInventory().getItemInMainHand().getItemMeta() == null) {
-                        event.setCancelled(true);
-                        return;
-                    }
-                    // check if item in attackers hand is the kill item
-                    String itemName = attacker.getInventory().getItemInMainHand().getItemMeta().getDisplayName();
-                    ItemInfoContainer killItem = Main.getItemsManager().getItem("kill");
-                    //if (attacker.getItemInHand().getType().equals(killItem.getItem2().getMat())) {
-                    if (killItem.getItem2().getTitle(attackerInfo.getKillCoolDown().toString()).equals(itemName)) {
+                    Main.getSoundsManager().playSound("playerDeathAttacker", attacker, victim.getLocation());
+                    Main.getSoundsManager().playSound("playerDeathVictim", victim, victim.getLocation());
 
-                        if (victimInfo.getIsInCameras()) {
-                            victimInfo.getArena().getCamerasManager().playerLeaveCameras(victimInfo, false);
-                        }
+                    attackerInfo.getArena().playerDeath(attackerInfo, victimInfo, true);
 
-                        attackerInfo.setKillCoolDown(attackerInfo.getArena().getKillCooldown());
-                        Location vicLoc = victim.getLocation();
-                        attacker.teleport(new Location(victim.getWorld(), vicLoc.getX(), vicLoc.getY(), vicLoc.getZ(), attacker.getLocation().getYaw(), attacker.getLocation().getPitch()));
-                        victim.getWorld().spawnParticle(Particle.BLOCK_CRACK, victim.getLocation().getX(), victim.getLocation().getY() + 1.3, victim.getLocation().getZ(), 30, 0.4D, 0.4D,
-                                0.4D, Bukkit.createBlockData(Material.REDSTONE_BLOCK));
-
-                        Main.getSoundsManager().playSound("playerDeathAttacker", attacker, victim.getLocation());
-                        Main.getSoundsManager().playSound("playerDeathVictim", victim, victim.getLocation());
-
-                        attackerInfo.getArena().playerDeath(attackerInfo, victimInfo, true);
-
-                        for (PlayerInfo pInfo : attackerInfo.getArena().getPlayersInfo()) {
-                            if (!pInfo.isGhost()) {
-                                DeadBody db = attackerInfo.getArena().getDeadBodiesManager().isCloseToBody(pInfo.getPlayer().getLocation());
-                                if (db != null) {
-                                    pInfo.setCanReportBody(true, db);
-                                }
+                    for (PlayerInfo pInfo : attackerInfo.getArena().getPlayersInfo()) {
+                        if (!pInfo.isGhost()) {
+                            DeadBody db = attackerInfo.getArena().getDeadBodiesManager().isCloseToBody(pInfo.getPlayer().getLocation());
+                            if (db != null) {
+                                pInfo.setCanReportBody(true, db);
                             }
                         }
-
                     }
                 }
             }

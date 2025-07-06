@@ -4,12 +4,12 @@ import java.util.ArrayList;
 
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.block.data.BlockData;
 import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.Player;
 import org.bukkit.util.EulerAngle;
 import org.bukkit.util.Vector;
 
-import com.comphenix.protocol.wrappers.WrappedBlockData;
 import com.nktfh100.AmongUs.utils.Utils;
 
 public class Camera implements Comparable<Camera> {
@@ -70,7 +70,7 @@ public class Camera implements Comparable<Camera> {
 		this.lampArmorStand.getEquipment().setHelmet(Utils.createSkull(isActive_ ? lampOn : lampOff, "", 1, ""));
 	}
 
-	public void addFakeBlock(Location loc, Material oldMat, Material newMat, WrappedBlockData oldBlockData) {
+	public void addFakeBlock(Location loc, Material oldMat, Material newMat, BlockData oldBlockData) {
 		this.fakeBlocks.add(new FakeBlock(loc, oldMat, newMat, oldBlockData));
 	}
 
@@ -87,7 +87,7 @@ public class Camera implements Comparable<Camera> {
 	}
 
 	public void addFakeAirBlock(Location loc) {
-		this.fakeAirBlocks.add(new FakeBlock(loc, loc.getBlock().getType(), Material.BARRIER, WrappedBlockData.createData(loc.getBlock().getBlockData())));
+		this.fakeAirBlocks.add(new FakeBlock(loc, loc.getBlock().getType(), Material.BARRIER, loc.getBlock().getBlockData()));
 	}
 
 	public void showFakeAirBlocks(Player player) {

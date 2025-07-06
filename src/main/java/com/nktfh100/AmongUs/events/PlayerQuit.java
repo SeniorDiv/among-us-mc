@@ -12,6 +12,7 @@ public class PlayerQuit implements Listener {
     @EventHandler
     public void onPlayerQuit(PlayerQuitEvent ev) {
         Player player = ev.getPlayer();
+        Main.getRemoteChatSessionManager().removeSession(player.getUniqueId());
         PlayerInfo pInfo = Main.getPlayersManager().getPlayerInfo(player);
         if (pInfo == null) {
             return;

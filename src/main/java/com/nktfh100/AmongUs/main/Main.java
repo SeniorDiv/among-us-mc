@@ -2,11 +2,15 @@ package com.nktfh100.AmongUs.main;
 
 import java.util.logging.Level;
 
+import com.github.retrooper.packetevents.PacketEvents;
+import com.github.retrooper.packetevents.event.EventManager;
+import com.github.retrooper.packetevents.event.PacketListenerPriority;
 import com.nktfh100.AmongUs.enums.GameEndReasons;
 import com.nktfh100.AmongUs.enums.GameEndWinners;
 import com.nktfh100.AmongUs.events.*;
 import com.nktfh100.AmongUs.holograms.DecentHologramClickListeners;
 import com.nktfh100.AmongUs.listeners.*;
+import com.nktfh100.AmongUs.managers.*;
 import com.nktfh100.AmongUs.utils.Logger;
 import me.neznamy.tab.api.TabAPI;
 import org.black_ixx.playerpoints.PlayerPoints;
@@ -16,9 +20,6 @@ import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 
-import com.comphenix.protocol.ProtocolLibrary;
-import com.comphenix.protocol.ProtocolManager;
-import com.comphenix.protocol.events.ListenerPriority;
 import com.google.common.io.ByteArrayDataOutput;
 import com.google.common.io.ByteStreams;
 import com.nktfh100.AmongUs.commands.AdminCommand;
@@ -27,19 +28,12 @@ import com.nktfh100.AmongUs.commands.PlayersCommand;
 import com.nktfh100.AmongUs.commands.PlayersCommandTab;
 import com.nktfh100.AmongUs.info.Arena;
 import com.nktfh100.AmongUs.info.Camera;
-import com.nktfh100.AmongUs.managers.ArenaManager;
-import com.nktfh100.AmongUs.managers.BungeArenaManager;
-import com.nktfh100.AmongUs.managers.ConfigManager;
-import com.nktfh100.AmongUs.managers.CosmeticsManager;
-import com.nktfh100.AmongUs.managers.ItemsManager;
-import com.nktfh100.AmongUs.managers.MessagesManager;
-import com.nktfh100.AmongUs.managers.PlayersManager;
-import com.nktfh100.AmongUs.managers.SoundsManager;
 import com.nktfh100.AmongUs.utils.Metrics;
 
 public class Main extends JavaPlugin {
 	private static Plugin plugin;
 	private static DecentHologramClickListeners dhClickListeners;
+	private static RemoteChatSessionManager remoteChatSessionManager;
 	private static ConfigManager configManager;
 	private static PlayersManager playersManager;
 	private static ArenaManager arenaManager;
@@ -52,13 +46,27 @@ public class Main extends JavaPlugin {
 	private static Boolean isVentureChat = false;
 	private static Boolean isPlaceHolderAPI = false;
 	private static Boolean isPlayerPoints = false;
-	private static Boolean isDecentHologram = false;
-	private static Boolean isHolographicDisplays = false;
+    private static Boolean isHolographicDisplays = false;
 	private static Boolean isTab = false;
 
 	private static PlayerPointsAPI playerPointsApi = null;
 	private static TabAPI tabApi = null;
 
+	@Override
+	public void onLoad() {
+		remoteChatSessionManager = new RemoteChatSessionManager();
+		EventManager eventManager = PacketEvents.getAPI().getEventManager();
+		eventManager.registerListener(new LoginListener(), PacketListenerPriority.NORMAL);
+		// hide items in players hands
+		eventManager.registerListener(new EquipmentListener(), PacketListenerPriority.NORMAL);
+		eventManager.registerListener(new UseEntityListener(), PacketListenerPriority.NORMAL);
+		// disable hitting sound
+		eventManager.registerListener(new NamedSoundEffectListener(), PacketListenerPriority.NORMAL);
+		eventManager.registerListener(new NamedEntitySpawnListener(), PacketListenerPriority.NORMAL);
+		eventManager.registerListener(new EntityListeners(), PacketListenerPriority.HIGHEST);
+	}
+
+	@Override
 	public void onEnable() {
 		plugin = this;
 
@@ -66,8 +74,7 @@ public class Main extends JavaPlugin {
 			isHolographicDisplays = true;
 		} else if (getServer().getPluginManager().getPlugin("DecentHolograms") != null) {
 			getServer().getPluginManager().registerEvents(new DecentHologramClickListeners(), this);
-			isDecentHologram = true;
-		} else {
+        } else {
 			Logger.log(Level.SEVERE, "You must have a holograms plugin installed. Please install the latest version of DecentHolograms or HolographicDisplays");
 			getServer().getPluginManager().disablePlugin(this);
 			return;
@@ -163,16 +170,6 @@ public class Main extends JavaPlugin {
 
 		Logger.log(Level.INFO, "[AmongUs] Plugin made by nktfh100");
 		Logger.log(Level.INFO, "[AmongUs] Made with love in israel!");
-
-		ProtocolManager protocolManager = ProtocolLibrary.getProtocolManager();
-
-		// hide items in players hands
-		protocolManager.addPacketListener(new EquipmentListener(this, ListenerPriority.NORMAL));
-		protocolManager.addPacketListener(new UseEntityListener(this, ListenerPriority.NORMAL));
-		// disable hiting sound
-		protocolManager.addPacketListener(new NamedSoundEffectListener(this, ListenerPriority.NORMAL));
-		protocolManager.addPacketListener(new NamedEntitySpawnListener(this, ListenerPriority.NORMAL));
-		protocolManager.addPacketListener(new EntityListeners(this, ListenerPriority.HIGHEST));
 	}
 
 	public static DecentHologramClickListeners getHologramListener() {
@@ -226,8 +223,7 @@ public class Main extends JavaPlugin {
 		cosmeticsManager.loadCosmetics();
 	}
 
-	private static Boolean runAsync = true;
-
+	@Override
 	public void onDisable() {
 		if (arenaManager != null) {
 			for (Arena arena : arenaManager.getAllArenas()) {
@@ -260,8 +256,8 @@ public class Main extends JavaPlugin {
 		return plugin;
 	}
 
-	public static Boolean shouldRunAsync() {
-		return runAsync;
+	public static RemoteChatSessionManager getRemoteChatSessionManager() {
+		return remoteChatSessionManager;
 	}
 
 	public static MessagesManager getMessagesManager() {

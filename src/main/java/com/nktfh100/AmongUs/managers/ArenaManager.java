@@ -26,7 +26,6 @@ import org.bukkit.entity.Player;
 import org.bukkit.map.MapView;
 import org.bukkit.map.MapView.Scale;
 
-import com.comphenix.protocol.wrappers.WrappedBlockData;
 import com.google.common.collect.Iterables;
 import com.nktfh100.AmongUs.info.Arena;
 import com.nktfh100.AmongUs.info.Camera;
@@ -516,7 +515,7 @@ public class ArenaManager {
 					Location loc = new Location(created.getWorld(), Double.valueOf(locInfo[1]),
 							Double.valueOf(locInfo[2]), Double.valueOf(locInfo[3]));
 					camera.addFakeBlock(loc, loc.getBlock().getType(), Material.valueOf(locInfo[0]),
-							WrappedBlockData.createData(loc.getBlock().getBlockData()));
+							loc.getBlock().getBlockData());
 				}
 
 				// load fake air blocks for this camera

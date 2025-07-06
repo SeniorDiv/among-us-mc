@@ -1,44 +1,40 @@
 package com.nktfh100.AmongUs.listeners;
 
-import com.comphenix.protocol.PacketType;
-import com.comphenix.protocol.events.ListenerPriority;
-import com.comphenix.protocol.events.PacketAdapter;
-import com.comphenix.protocol.events.PacketEvent;
-import com.comphenix.protocol.wrappers.EnumWrappers;
-import com.comphenix.protocol.wrappers.Pair;
+import com.github.retrooper.packetevents.event.PacketListener;
+import com.github.retrooper.packetevents.event.PacketSendEvent;
+import com.github.retrooper.packetevents.protocol.packettype.PacketType;
+import com.github.retrooper.packetevents.protocol.player.Equipment;
+import com.github.retrooper.packetevents.protocol.player.EquipmentSlot;
+import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerEntityEquipment;
 import com.nktfh100.AmongUs.info.PlayerInfo;
 import com.nktfh100.AmongUs.main.Main;
+import io.github.retrooper.packetevents.util.SpigotConversionUtil;
 import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.plugin.Plugin;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
 import java.util.List;
 
-public class EquipmentListener extends PacketAdapter {
-    public EquipmentListener(Plugin plugin, ListenerPriority priority) {
-        super(plugin, priority, PacketType.Play.Server.ENTITY_EQUIPMENT);
-    }
+public class EquipmentListener implements PacketListener {
+    @Override
+    public void onPacketSend(@NotNull PacketSendEvent event) {
+        if (event.getPacketType() != PacketType.Play.Server.ENTITY_EQUIPMENT) return;
 
-    public void onPacketSending(PacketEvent event) {
-        if (event.getPlayer() == null) {
-            return;
-        }
         PlayerInfo pInfo = Main.getPlayersManager().getPlayerInfo(event.getPlayer());
-        if (pInfo != null && pInfo.getIsIngame()) {
-            List<Pair<EnumWrappers.ItemSlot, ItemStack>> newSlotStack = new ArrayList<>();
+        if (pInfo == null || !pInfo.getIsIngame()) return;
 
-            for (Pair<EnumWrappers.ItemSlot, ItemStack> pair : event.getPacket().getSlotStackPairLists().read(0)) {
-                if (pair.getFirst() == EnumWrappers.ItemSlot.MAINHAND) {
-                    newSlotStack.add(new Pair<>(EnumWrappers.ItemSlot.MAINHAND, new ItemStack(Material.AIR, 1)));
-                } else if (pair.getFirst() == EnumWrappers.ItemSlot.OFFHAND) {
-                    newSlotStack.add(new Pair<>(EnumWrappers.ItemSlot.OFFHAND, new ItemStack(Material.AIR, 1)));
-                } else {
-                    newSlotStack.add(pair);
-                }
+        WrapperPlayServerEntityEquipment packet = new WrapperPlayServerEntityEquipment(event);
+
+        List<Equipment> equipmentList = new ArrayList<>();
+        for (Equipment equipment : packet.getEquipment()) {
+            if (equipment.getSlot() == EquipmentSlot.MAIN_HAND || equipment.getSlot() == EquipmentSlot.OFF_HAND) {
+                equipmentList.add(new Equipment(equipment.getSlot(), SpigotConversionUtil.fromBukkitItemStack(new ItemStack(Material.AIR))));
+            } else {
+                equipmentList.add(equipment);
             }
-            event.getPacket().getSlotStackPairLists().write(0, newSlotStack);
         }
-    }
 
+        packet.setEquipment(equipmentList);
+    }
 }

@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.UUID;
 import java.util.logging.Level;
 
+import com.github.retrooper.packetevents.util.Vector3f;
 import com.nktfh100.AmongUs.holograms.ImposterHologram;
 import com.nktfh100.AmongUs.utils.Logger;
 import org.bukkit.Bukkit;
@@ -24,8 +25,6 @@ import org.bukkit.scoreboard.Objective;
 import org.bukkit.scoreboard.Scoreboard;
 import org.bukkit.scoreboard.Team;
 
-import com.comphenix.protocol.wrappers.Vector3F;
-import com.comphenix.protocol.wrappers.WrappedBlockData;
 import com.nktfh100.AmongUs.enums.CosmeticType;
 import com.nktfh100.AmongUs.enums.GameState;
 import com.nktfh100.AmongUs.enums.RoleType;
@@ -139,7 +138,7 @@ public class PlayerInfo {
 		}.runTaskAsynchronously(Main.getPlugin());
 		this.scanArmorStands = new ArrayList<FakeArmorStand>();
 		for (int i = 0; i < 4; i++) {
-			this.scanArmorStands.add(new FakeArmorStand(pInfo, player.getLocation(), new Vector3F(90, 0, 0), null));
+			this.scanArmorStands.add(new FakeArmorStand(pInfo, player.getLocation(), new Vector3f(90, 0, 0), null));
 		}
 		this.statsManager = new StatsManager(this);
 		if (!Main.getConfigManager().getBungeecord() && Main.getConfigManager().getEnableLobbyScoreboard()) {
@@ -230,7 +229,7 @@ public class PlayerInfo {
 
 			for (Location loc_ : newLocs) {
 				if (loc_.getBlock().getType() == Material.AIR) {
-					FakeBlock fb = new FakeBlock(loc_, loc_.getBlock().getType(), Main.getConfigManager().getViewGlassMat(), WrappedBlockData.createData(loc_.getBlock().getBlockData()));
+					FakeBlock fb = new FakeBlock(loc_, loc_.getBlock().getType(), Main.getConfigManager().getViewGlassMat(), loc_.getBlock().getBlockData());
 					newFakeBlocks.add(fb);
 					fb.sendNewBlock(this.player);
 				}

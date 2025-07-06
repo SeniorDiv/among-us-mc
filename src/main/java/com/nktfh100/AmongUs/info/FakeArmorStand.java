@@ -2,35 +2,31 @@ package com.nktfh100.AmongUs.info;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 import java.util.UUID;
 
-import com.google.common.collect.Lists;
+import com.github.retrooper.packetevents.protocol.entity.data.EntityData;
+import com.github.retrooper.packetevents.protocol.entity.data.EntityDataTypes;
+import com.github.retrooper.packetevents.util.Vector3f;
+import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerEntityMetadata;
 import com.nktfh100.AmongUs.main.Main;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 
-import com.comphenix.protocol.PacketType;
-import com.comphenix.protocol.events.PacketContainer;
-import com.comphenix.protocol.wrappers.Vector3F;
-import com.comphenix.protocol.wrappers.WrappedDataWatcher;
-import com.comphenix.protocol.wrappers.WrappedDataValue;
-import com.comphenix.protocol.wrappers.WrappedDataWatcher.Registry;
 import com.nktfh100.AmongUs.utils.Packets;
 
 public class FakeArmorStand {
 
-	private PlayerInfo pInfo;
+	private final PlayerInfo pInfo;
 	private Location loc;
-	private int entityId;
-	private UUID uuid;
-	private Vector3F headRotation = null;
-	private Vector3F bodyRotation = null;
+	private final int entityId;
+	private final UUID uuid;
+	private Vector3f headRotation;
+	private Vector3f bodyRotation;
 
-	private ArrayList<Player> shownTo = new ArrayList<Player>();
+	private final ArrayList<Player> shownTo = new ArrayList<>();
 
-	public FakeArmorStand(PlayerInfo pInfo, Location loc, Vector3F headRotation, Vector3F bodyRotation) {
+	public FakeArmorStand(PlayerInfo pInfo, Location loc, Vector3f headRotation, Vector3f bodyRotation) {
 		this.pInfo = pInfo;
 		this.loc = loc;
 		this.entityId = (int) (Math.random() * Integer.MAX_VALUE);
@@ -46,78 +42,35 @@ public class FakeArmorStand {
 		}
 	}
 
-	public void updateRotation(Vector3F headRotation, Vector3F bodyRotation) {
-		PacketContainer packet = new PacketContainer(PacketType.Play.Server.ENTITY_METADATA);
-		packet.getIntegers().write(0, this.entityId);
+	public void updateRotation(Vector3f headRotation, Vector3f bodyRotation) {
+		List<EntityData<?>> data = new ArrayList<>();
+		data.add(new EntityData<>(0, EntityDataTypes.BYTE, (byte) 0x20));
 
-		WrappedDataWatcher watcher = new WrappedDataWatcher();
-		watcher.setObject(0, Registry.get(Byte.class), (byte) (0x20)); // invis
 		if (headRotation != null) {
+			this.headRotation = headRotation;
 			if (Main.getVersion()[0] < 19 || (Main.getVersion()[0] == 19 && Main.getVersion()[1] < 3)) {
-				this.headRotation = headRotation;
-				watcher.setObject(15, Registry.getVectorSerializer(), this.headRotation);
+				data.add(new EntityData<>(15, EntityDataTypes.ROTATION, headRotation));
 			} else {
-				this.headRotation = headRotation;
-				watcher.setObject(16, Registry.getVectorSerializer(), this.headRotation);
+				data.add(new EntityData<>(16, EntityDataTypes.ROTATION, headRotation));
 			}
 		}
 		if (bodyRotation != null) {
+			this.bodyRotation = bodyRotation;
 			if (Main.getVersion()[0] < 19 || (Main.getVersion()[0] == 19 && Main.getVersion()[1] < 3)) {
-				watcher.setObject(14, Registry.getVectorSerializer(), this.bodyRotation);
-				this.bodyRotation = bodyRotation;
+				data.add(new EntityData<>(16, EntityDataTypes.ROTATION, bodyRotation));
 			} else {
-				watcher.setObject(17, Registry.getVectorSerializer(), this.bodyRotation);
-				this.bodyRotation = bodyRotation;
+				data.add(new EntityData<>(17, EntityDataTypes.ROTATION, bodyRotation));
 			}
 		}
-		
-		packet.getWatchableCollectionModifier().write(0, watcher.getWatchableObjects());
+
 		for (Player player : this.shownTo) {
-			Packets.sendPacket(player, packet);
+			Packets.sendPacket(player, new WrapperPlayServerEntityMetadata(entityId, data));
 		}
 	}
 
 	public void showTo(Player player, Boolean register) {
 		Packets.sendPacket(player, Packets.ARMOR_STAND(this.loc, this.entityId, this.uuid));
-
-		PacketContainer packet = new PacketContainer(PacketType.Play.Server.ENTITY_METADATA);
-		packet.getIntegers().write(0, this.entityId);
-
-		WrappedDataWatcher watcher = new WrappedDataWatcher();
-		watcher.setObject(0, Registry.get(Byte.class), (byte) (0x20)); // invis
-		if (this.headRotation != null) {
-			if (Main.getVersion()[0] < 19 || (Main.getVersion()[0] == 19 && Main.getVersion()[1] < 3)) {
-				watcher.setObject(15, Registry.getVectorSerializer(), this.headRotation);
-			} else {
-				watcher.setObject(16, Registry.getVectorSerializer(), this.headRotation);
-			}
-		}
-		if (this.bodyRotation != null) {
-			if (Main.getVersion()[0] < 19 || (Main.getVersion()[0] == 19 && Main.getVersion()[1] < 3)) {
-				watcher.setObject(14, Registry.getVectorSerializer(), this.bodyRotation);
-			} else {
-				watcher.setObject(17, Registry.getVectorSerializer(), this.bodyRotation);
-			}
-		}
-
-		// for custom name
-//		Optional<?> opt = Optional.of(WrappedChatComponent.fromChatMessage(this.customName)[0].getHandle());
-//		watcher.setObject(new WrappedDataWatcherObject(2, WrappedDataWatcher.Registry.getChatComponentSerializer(true)), opt);
-
-		if (Main.getVersion()[0] < 19 || (Main.getVersion()[0] == 19 && Main.getVersion()[1] < 3)) {
-			packet.getWatchableCollectionModifier().write(0, watcher.getWatchableObjects());
-
-		} else {
-			final List<WrappedDataValue> wrappedDataValueList = Lists.newArrayList();
-			watcher.getWatchableObjects().stream().filter(Objects::nonNull).forEach(entry -> {
-				final WrappedDataWatcher.WrappedDataWatcherObject dataWatcherObject = entry.getWatcherObject();
-				wrappedDataValueList.add(new WrappedDataValue(dataWatcherObject.getIndex(), dataWatcherObject.getSerializer(), entry.getRawValue()));
-			});
-			packet.getDataValueCollectionModifier().write(0, wrappedDataValueList);
-		}
-
-		Packets.sendPacket(player, packet);
-
+		updateRotation(this.headRotation, this.bodyRotation);
 		Packets.sendPacket(player, Packets.ENTITY_EQUIPMENT_HEAD(this.entityId, Material.LIME_STAINED_GLASS_PANE));
 
 		if (register) {

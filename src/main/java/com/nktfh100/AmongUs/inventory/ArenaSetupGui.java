@@ -12,7 +12,6 @@ import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
-import com.comphenix.protocol.wrappers.WrappedBlockData;
 import com.nktfh100.AmongUs.info.Arena;
 import com.nktfh100.AmongUs.info.Camera;
 import com.nktfh100.AmongUs.info.Door;
@@ -3498,8 +3497,7 @@ public class ArenaSetupGui {
 				if (door.getCorner2() != null
 						&& Utils.blocksFromTwoPoints(player.getLocation(), door.getCorner2()).size() <= 30) {
 					for (Block block : Utils.blocksFromTwoPoints(player.getLocation(), door.getCorner2())) {
-						Packets.sendPacket(player, Packets.BLOCK_CHANGE(block.getLocation(),
-								WrappedBlockData.createData(Material.IRON_BLOCK)));
+						Packets.sendPacket(player, Packets.BLOCK_CHANGE(block.getLocation(), Material.IRON_BLOCK.createBlockData()));
 					}
 				}
 
@@ -3534,8 +3532,7 @@ public class ArenaSetupGui {
 				if (door.getCorner1() != null
 						&& Utils.blocksFromTwoPoints(door.getCorner1(), player.getLocation()).size() <= 30) {
 					for (Block block : Utils.blocksFromTwoPoints(door.getCorner1(), player.getLocation())) {
-						Packets.sendPacket(player, Packets.BLOCK_CHANGE(block.getLocation(),
-								WrappedBlockData.createData(Material.IRON_BLOCK)));
+						Packets.sendPacket(player, Packets.BLOCK_CHANGE(block.getLocation(), Material.IRON_BLOCK.createBlockData()));
 					}
 				}
 

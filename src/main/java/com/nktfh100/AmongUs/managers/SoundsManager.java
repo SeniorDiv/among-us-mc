@@ -101,11 +101,11 @@ public class SoundsManager {
 				new BukkitRunnable() {
 					@Override
 					public void run() {
-						Packets.sendPacket(player, soundInfo.getPacket(loc));
+						soundInfo.playSound(player, loc);
 					}
 				}.runTaskLater(Main.getPlugin(), soundInfo.getDelay());
 			} else {
-				Packets.sendPacket(player, soundInfo.getPacket(loc));
+				soundInfo.playSound(player, loc);
 			}
 		}
 	}
@@ -114,7 +114,7 @@ public class SoundsManager {
 		ArrayList<SoundInfo> out = this.sounds.get(key);
 		if (out == null) {
 			Logger.log(Level.WARNING,"Sound '" + key + "' is missing from your sounds.yml file!");
-			return new ArrayList<SoundInfo>();
+			return new ArrayList<>();
 		}
 		return out;
 	}

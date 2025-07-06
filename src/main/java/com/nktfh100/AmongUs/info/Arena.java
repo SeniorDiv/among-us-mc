@@ -13,6 +13,7 @@ import java.util.List;
 import java.util.Stack;
 import java.util.logging.Level;
 
+import com.github.retrooper.packetevents.wrapper.PacketWrapper;
 import com.nktfh100.AmongUs.api.events.*;
 import com.nktfh100.AmongUs.enums.*;
 import com.nktfh100.AmongUs.holograms.HologramClickListener;
@@ -21,16 +22,8 @@ import com.nktfh100.AmongUs.utils.Logger;
 import eu.decentsoftware.holograms.event.HologramClickEvent;
 import me.clip.placeholderapi.PlaceholderAPI;
 import me.filoghost.holographicdisplays.api.hologram.line.HologramLineClickEvent;
-import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
-import org.bukkit.Color;
-import org.bukkit.FireworkEffect;
+import org.bukkit.*;
 import org.bukkit.FireworkEffect.Builder;
-import org.bukkit.GameMode;
-import org.bukkit.Location;
-import org.bukkit.Material;
-import org.bukkit.Sound;
-import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.data.Lightable;
 import org.bukkit.boss.BarColor;
@@ -53,8 +46,6 @@ import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scheduler.BukkitTask;
 import org.bukkit.util.Vector;
 
-import com.comphenix.protocol.PacketType;
-import com.comphenix.protocol.events.PacketContainer;
 import com.nktfh100.AmongUs.inventory.ColorSelectorInv;
 import com.nktfh100.AmongUs.inventory.MeetingBtnInv;
 import com.nktfh100.AmongUs.inventory.tasks.TaskInvHolder;
@@ -360,11 +351,8 @@ public class Arena {
 								// Send damage animation / sound (while a sabotage is active)
 								if (sendDamageAnim) {
 									for (PlayerInfo pInfo : arena.getPlayersInfo()) {
-										PacketContainer damagePacket = new PacketContainer(PacketType.Play.Server.ANIMATION);
-										damagePacket.getIntegers().write(1, 1);
-										damagePacket.getIntegers().write(0, pInfo.getPlayer().getEntityId());
-										Packets.sendPacket(pInfo.getPlayer(), damagePacket);
-										Packets.sendPacket(pInfo.getPlayer(), Packets.NAMED_SOUND(pInfo.getPlayer().getLocation(), Sound.ENTITY_PLAYER_HURT));
+										Packets.sendPacket(pInfo.getPlayer(), Packets.HURT_ANIMATION(pInfo.getPlayer().getEntityId()));
+										pInfo.getPlayer().playSound(pInfo.getPlayer().getLocation(), Sound.ENTITY_PLAYER_HURT, SoundCategory.BLOCKS, 50f, 1f);
 									}
 									sendDamageAnim = false;
 								} else {
@@ -392,8 +380,14 @@ public class Arena {
 										if (!tp.getIsDone() && tp.getActiveTask().getHolo().isVisibleTo(pInfo.getPlayer())) {
 											if (!arena.getEnableReducedVision()
 													|| Utils.isInsideCircle(pInfo.getPlayer().getLocation(), (double) pInfo.getVision(), tp.getActiveTask().getLocation()) != 2) {
-												Packets.sendPacket(pInfo.getPlayer(), Packets.PARTICLES(tp.getActiveTask().getHolo().getLocation().add(0, -0.3, 0),
-														Main.getConfigManager().getParticlesOnTasksType(), null, 8, 0.4f, 0.3f, 0.4f));
+												pInfo.getPlayer().spawnParticle(
+														Main.getConfigManager().getParticlesOnTasksType(),
+														tp.getActiveTask().getHolo().getLocation().clone().add(0, -0.3, 0),
+														8,
+														0.4f,
+														0.3f,
+														0.4f
+												);
 											}
 										}
 									}
@@ -553,7 +547,7 @@ public class Arena {
 			pInfo.giveArmor();
 			ItemInfo colorSelectorItem = Main.getItemsManager().getItem("colorSelector").getItem();
 			pInfo.getPlayer().getInventory().setItem(colorSelectorItem.getSlot(), Utils.createItem(pInfo.getColor().getWool(), colorSelectorItem.getTitle(), 1, colorSelectorItem.getLore()));
-			PacketContainer packet = Packets.UPDATE_DISPLAY_NAME(pInfo.getPlayer().getUniqueId(), pInfo.getPlayer().getName(), pInfo.getCustomName());
+			PacketWrapper<?> packet = Packets.UPDATE_DISPLAY_NAME(pInfo.getPlayer().getUniqueId(), pInfo.getPlayer().getName(), pInfo.getCustomName());
 			for (Player player : this.getPlayers()) {
 				Packets.sendPacket(player, packet);
 			}
@@ -743,7 +737,7 @@ public class Arena {
 				}
 
 				if (!Main.getConfigManager().getBungeecord() && Main.getConfigManager().getHidePlayersOutSideArena()) {
-					PacketContainer packet_ = Packets.UPDATE_DISPLAY_NAME(pInfo.getPlayer().getUniqueId(), pInfo.getPlayer().getName(), pInfo.getCustomName());
+					PacketWrapper<?> packet_ = Packets.UPDATE_DISPLAY_NAME(pInfo.getPlayer().getUniqueId(), pInfo.getPlayer().getName(), pInfo.getCustomName());
 					Packets.sendPacket(player, packet_);
 					for (PlayerInfo pInfo_ : Main.getPlayersManager().getPlayers().values()) {
 						if (pInfo != pInfo_) {
@@ -780,14 +774,14 @@ public class Arena {
 							if (arena == null || pInfo == null || !pInfo.getPlayer().isOnline() || !pInfo.getIsIngame()) {
 								return;
 							}
-							PacketContainer packet_ = Packets.UPDATE_DISPLAY_NAME(pInfo.getPlayer().getUniqueId(), pInfo.getPlayer().getName(), pInfo.getCustomName());
+							PacketWrapper<?> packet_ = Packets.UPDATE_DISPLAY_NAME(pInfo.getPlayer().getUniqueId(), pInfo.getPlayer().getName(), pInfo.getCustomName());
 							Packets.sendPacket(player, packet_);
 							for (PlayerInfo pInfo1 : arena.getPlayersInfo()) {
 								if (pInfo1 == null || !pInfo1.getPlayer().isOnline() || !pInfo1.getIsIngame()) {
 									continue;
 								}
 								if (pInfo1 != pInfo) {
-									PacketContainer packet = Packets.UPDATE_DISPLAY_NAME(pInfo1.getPlayer().getUniqueId(), pInfo1.getPlayer().getName(), pInfo1.getCustomName());
+									PacketWrapper<?> packet = Packets.UPDATE_DISPLAY_NAME(pInfo1.getPlayer().getUniqueId(), pInfo1.getPlayer().getName(), pInfo1.getCustomName());
 									Packets.sendPacket(pInfo.getPlayer(), packet);
 									Packets.sendPacket(pInfo1.getPlayer(), packet_);
 								}
@@ -1165,7 +1159,7 @@ public class Arena {
 					}
 					if (!killed) {
 						// if Ejected
-						PacketContainer removePlayerPacket = Packets.REMOVE_PLAYER(pInfo1.getPlayer(), pInfo.getPlayer().getUniqueId());
+						PacketWrapper<?> removePlayerPacket = Packets.REMOVE_PLAYER(pInfo1.getPlayer(), pInfo.getPlayer().getUniqueId());
 						Packets.sendPacket(pInfo1.getPlayer(), removePlayerPacket);
 					}
 				} else {
@@ -1416,7 +1410,7 @@ public class Arena {
 
 				pInfo.setFakePlayer(new FakePlayer(this, pInfo));
 
-				PacketContainer packet = Packets.UPDATE_DISPLAY_NAME(player.getUniqueId(), player.getName(), pInfo.getCustomName());
+				PacketWrapper<?> packet = Packets.UPDATE_DISPLAY_NAME(player.getUniqueId(), player.getName(), pInfo.getCustomName());
 				for (PlayerInfo pInfo1 : this.getPlayersInfo()) {
 					Packets.sendPacket(pInfo1.getPlayer(), packet);
 				}

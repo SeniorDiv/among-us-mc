@@ -4,8 +4,6 @@ import org.bukkit.Location;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 
-import com.comphenix.protocol.PacketType;
-import com.comphenix.protocol.events.PacketContainer;
 import com.nktfh100.AmongUs.enums.GameState;
 import com.nktfh100.AmongUs.enums.SabotageType;
 import com.nktfh100.AmongUs.info.Arena;
@@ -185,23 +183,10 @@ public class VisibilityManager {
 
 			Player playerToShow = pInfoToShow.getPlayer();
 			Location loc = playerToShow.getLocation();
-			PacketContainer spawnPacket;
-			if (Main.getVersion()[0] > 20 || (Main.getVersion()[0] == 20 && Main.getVersion()[1] >= 2)) {
-				spawnPacket = new PacketContainer(PacketType.Play.Server.SPAWN_ENTITY);
-				spawnPacket.getEntityTypeModifier().write(0, EntityType.PLAYER);
-				spawnPacket.getIntegers().write(5, Packets.toPacketRotation(loc.getYaw())).write(4, Packets.toPacketRotation(loc.getPitch()));
-
-			} else {
-				spawnPacket = new PacketContainer(PacketType.Play.Server.NAMED_ENTITY_SPAWN);
-				spawnPacket.getBytes().write(0, Packets.toPackedByte(loc.getYaw())).write(1, Packets.toPackedByte(loc.getPitch()));
-			}
-			spawnPacket.getIntegers().write(0, playerToShow.getEntityId());
-			spawnPacket.getUUIDs().write(0, playerToShow.getUniqueId());
-			spawnPacket.getDoubles().write(0, loc.getX()).write(1, loc.getY()).write(2, loc.getZ());
-			Packets.sendPacket(pInfoToShowTo.getPlayer(), spawnPacket);
+			Packets.sendPacket(pInfoToShowTo.getPlayer(), Packets.SPAWN_PLAYER(loc, playerToShow.getEntityId(), playerToShow.getUniqueId()));
 
 			// metadata packet
-			Packets.sendPacket(pInfoToShowTo.getPlayer(), Packets.METADATA_SKIN(pInfoToShow.getPlayer().getEntityId(), pInfoToShow.getPlayer(), pInfoToShow.isGhost()));
+			Packets.sendPacket(pInfoToShowTo.getPlayer(), Packets.METADATA_SKIN(pInfoToShow.getPlayer().getEntityId(), pInfoToShow.isGhost()));
 
 			Packets.sendPacket(pInfoToShowTo.getPlayer(), Packets.ENTITY_LOOK(playerToShow.getPlayer().getEntityId(), loc));
 			Packets.sendPacket(pInfoToShowTo.getPlayer(), Packets.ENTITY_HEAD_ROTATION(playerToShow.getPlayer().getEntityId(), loc));

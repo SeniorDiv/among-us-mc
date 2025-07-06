@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 
-import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.Particle;
 import org.bukkit.entity.Player;
@@ -12,7 +11,6 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scheduler.BukkitTask;
 
-import com.comphenix.protocol.events.PacketContainer;
 import com.nktfh100.AmongUs.info.Arena;
 import com.nktfh100.AmongUs.info.ItemInfoContainer;
 import com.nktfh100.AmongUs.info.PlayerInfo;
@@ -20,18 +18,17 @@ import com.nktfh100.AmongUs.info.TaskPlayer;
 import com.nktfh100.AmongUs.inventory.ClickAction;
 import com.nktfh100.AmongUs.inventory.Icon;
 import com.nktfh100.AmongUs.main.Main;
-import com.nktfh100.AmongUs.utils.Packets;
 import com.nktfh100.AmongUs.utils.Utils;
 
 public class TaskEmptyGarbageInv extends TaskInvHolder {
 
-	private static ArrayList<ArrayList<Integer>> slots = new ArrayList<ArrayList<Integer>>();
+	private static final ArrayList<ArrayList<Integer>> slots = new ArrayList<ArrayList<Integer>>();
 
 	static {
-		slots.add(new ArrayList<Integer>(Arrays.asList(37, 38, 39, 40, 41)));
-		slots.add(new ArrayList<Integer>(Arrays.asList(28, 29, 30, 31, 32)));
-		slots.add(new ArrayList<Integer>(Arrays.asList(19, 20, 21, 22, 23)));
-		slots.add(new ArrayList<Integer>(Arrays.asList(10, 11, 12, 13, 14)));
+		slots.add(new ArrayList<>(Arrays.asList(37, 38, 39, 40, 41)));
+		slots.add(new ArrayList<>(Arrays.asList(28, 29, 30, 31, 32)));
+		slots.add(new ArrayList<>(Arrays.asList(19, 20, 21, 22, 23)));
+		slots.add(new ArrayList<>(Arrays.asList(10, 11, 12, 13, 14)));
 	}
 
 	private Boolean isDone = false;
@@ -61,7 +58,7 @@ public class TaskEmptyGarbageInv extends TaskInvHolder {
 
 	private ArrayList<Integer> generateRandomRow() {
 		ArrayList<Integer> out = new ArrayList<Integer>();
-		Integer offNum = Utils.getRandomNumberInRange(1, 4);
+		int offNum = Utils.getRandomNumberInRange(1, 4);
 		for (int i = 0; i < 5; i++) {
 			if (offNum > 0) {
 				out.add(1);
@@ -96,19 +93,22 @@ public class TaskEmptyGarbageInv extends TaskInvHolder {
 	}
 
 	public void playVisuals() {
-		PacketContainer packet = Packets.PARTICLES(this.pInfo.getPlayer().getLocation().add(0, 1.3, 0), Particle.BLOCK_CRACK, Bukkit.createBlockData(Material.PODZOL), 60, 0.5F, 0.5F, 0.5F);
-		Packets.sendPacket(this.pInfo.getPlayer(), packet);
+		showParticles(pInfo.getPlayer());
 		for (PlayerInfo pInfo_ : arena.getPlayersInfo()) {
 			if (pInfo != pInfo_) {
 				if (this.arena.getEnableReducedVision()) {
 					if (pInfo_.isGhost() || !pInfo_.getPlayersHidden().contains(this.pInfo.getPlayer())) {
-						Packets.sendPacket(pInfo_.getPlayer(), packet);
+						showParticles(pInfo_.getPlayer());
 					}
 				} else {
-					Packets.sendPacket(pInfo_.getPlayer(), packet);
+					showParticles(pInfo_.getPlayer());
 				}
 			}
 		}
+	}
+
+	private void showParticles(Player player) {
+		player.spawnParticle(Particle.BLOCK_CRACK, player.getLocation().clone().add(0, 1.3, 0), 60, 0.5, 0.5, 0.5, Material.PODZOL.createBlockData());
 	}
 
 	@Override

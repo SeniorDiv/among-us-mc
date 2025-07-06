@@ -2,79 +2,79 @@ package com.nktfh100.AmongUs.utils;
 
 import java.util.*;
 
-import com.comphenix.protocol.wrappers.*;
-import com.google.common.collect.Lists;
+import com.github.retrooper.packetevents.PacketEvents;
+import com.github.retrooper.packetevents.protocol.entity.data.EntityData;
+import com.github.retrooper.packetevents.protocol.entity.data.EntityDataTypes;
+import com.github.retrooper.packetevents.protocol.entity.pose.EntityPose;
+import com.github.retrooper.packetevents.protocol.entity.type.EntityTypes;
+import com.github.retrooper.packetevents.protocol.player.*;
+import com.github.retrooper.packetevents.protocol.player.GameMode;
+import com.github.retrooper.packetevents.protocol.world.states.WrappedBlockState;
+import com.github.retrooper.packetevents.util.Vector3d;
+import com.github.retrooper.packetevents.util.Vector3i;
+import com.github.retrooper.packetevents.wrapper.PacketWrapper;
+import com.github.retrooper.packetevents.wrapper.play.server.*;
 import com.nktfh100.AmongUs.main.Main;
+import io.github.retrooper.packetevents.adventure.serializer.legacy.LegacyComponentSerializer;
+import io.github.retrooper.packetevents.util.SpigotConversionUtil;
 import org.bukkit.*;
-import org.bukkit.entity.EntityType;
+import org.bukkit.block.data.BlockData;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
-import com.comphenix.protocol.PacketType;
-import com.comphenix.protocol.ProtocolLibrary;
-import com.comphenix.protocol.events.PacketContainer;
-import com.comphenix.protocol.wrappers.WrappedDataWatcher.Registry;
-import com.comphenix.protocol.wrappers.WrappedDataWatcher.Serializer;
-import com.comphenix.protocol.wrappers.WrappedDataWatcher.WrappedDataWatcherObject;
 import com.nktfh100.AmongUs.info.ColorInfo;
-import com.comphenix.protocol.wrappers.EnumWrappers.EntityPose;
-import com.comphenix.protocol.wrappers.EnumWrappers.ItemSlot;
-import com.comphenix.protocol.wrappers.EnumWrappers.NativeGameMode;
 
 public class Packets {
-	public static byte toPackedByte(float f) {
+	private static final LegacyComponentSerializer legacy = LegacyComponentSerializer.legacyAmpersand();
+	/*public static byte toPackedByte(float f) {
 		return (byte) ((int) (f * 256.0F / 360.0F));
 	}
 
 	public static int toPacketRotation(float f) {
 		return (int) (f * 256.0F / 360.0F);
-	}
+	}*/
 
-	public static void sendPacket(Player p, PacketContainer packet) {
+	public static void sendPacket(Player p, PacketWrapper<?> packet) {
 		if (p.isOnline() && packet != null) {
-			ProtocolLibrary.getProtocolManager().sendServerPacket(p, packet);
+			PacketEvents.getAPI().getPlayerManager().sendPacket(p, packet);
 		}
 	}
 
-	public static PacketContainer UPDATE_DISPLAY_NAME(UUID uuid, String orgName, String newName) {
-        PacketContainer packet = new PacketContainer(PacketType.Play.Server.PLAYER_INFO);
-		WrappedGameProfile wgp = new WrappedGameProfile(uuid, orgName);
+	public static PacketWrapper<?> UPDATE_DISPLAY_NAME(UUID uuid, String orgName, String newName) {
+		UserProfile profile = new UserProfile(uuid, orgName);
 
         if (Main.getVersion()[0] < 19 || (Main.getVersion()[0] == 19 && Main.getVersion()[1] < 3)) {
-            packet.getPlayerInfoAction().write(0, EnumWrappers.PlayerInfoAction.UPDATE_DISPLAY_NAME);
-			packet.getPlayerInfoDataLists().write(0,
-					Collections.singletonList(
-							new PlayerInfoData(wgp, 50, NativeGameMode.ADVENTURE, WrappedChatComponent.fromLegacyText(newName))
-					)
+			return new WrapperPlayServerPlayerInfo(
+					WrapperPlayServerPlayerInfo.Action.UPDATE_DISPLAY_NAME,
+					new WrapperPlayServerPlayerInfo.PlayerData(legacy.deserialize(newName), profile, GameMode.ADVENTURE, 50)
 			);
 
         } else {
-            packet.getPlayerInfoActions().write(0, EnumSet.of(EnumWrappers.PlayerInfoAction.UPDATE_DISPLAY_NAME));
-			packet.getPlayerInfoDataLists().write(1,
-					Collections.singletonList(new PlayerInfoData(wgp, 50, NativeGameMode.ADVENTURE, WrappedChatComponent.fromLegacyText(newName)
-					)));
-
+			return new WrapperPlayServerPlayerInfoUpdate(
+					WrapperPlayServerPlayerInfoUpdate.Action.UPDATE_DISPLAY_NAME,
+					new WrapperPlayServerPlayerInfoUpdate.PlayerInfo(profile, true, 50, GameMode.ADVENTURE, legacy.deserialize(newName), Main.getRemoteChatSessionManager().getSession(uuid))
+			);
         }
-        return packet;
     }
 
-	public static PacketContainer ADD_PLAYER(Player player, UUID playerToAdd, String name, String displayName, String textureValue, String textureSignature, boolean... isFakePlayer) {
-		PacketContainer packet = new PacketContainer(PacketType.Play.Server.PLAYER_INFO);
-		WrappedGameProfile wgp = new WrappedGameProfile(playerToAdd, name);
-		PlayerInfoData playerInfoData = new PlayerInfoData(wgp, 50, NativeGameMode.ADVENTURE, WrappedChatComponent.fromText(displayName));
+	public static PacketWrapper<?> ADD_PLAYER(Player player, UUID playerToAdd, String name, String displayName, String textureValue, String textureSignature, boolean... isFakePlayer) {
+		PacketWrapper<?> packet;
+		UserProfile profile = new UserProfile(playerToAdd, name);
+		profile.getTextureProperties().clear();
+		profile.getTextureProperties().add(new TextureProperty("textures", textureValue, textureSignature));
 
 		if (Main.getVersion()[0] < 19 || (Main.getVersion()[0] == 19 && Main.getVersion()[1] < 3)) {
-			packet.getPlayerInfoAction().write(0, EnumWrappers.PlayerInfoAction.ADD_PLAYER);
-			packet.getPlayerInfoDataLists().write(0, Collections.singletonList(playerInfoData));
-			// new ArrayList<>(List.of(playerInfoData))
+			packet = new WrapperPlayServerPlayerInfo(
+					WrapperPlayServerPlayerInfo.Action.ADD_PLAYER,
+					new WrapperPlayServerPlayerInfo.PlayerData(legacy.deserialize(displayName), profile, GameMode.ADVENTURE, 50)
+			);
 
-        } else {
-			packet.getPlayerInfoActions().write(0, EnumSet.of(EnumWrappers.PlayerInfoAction.ADD_PLAYER, EnumWrappers.PlayerInfoAction.UPDATE_DISPLAY_NAME, EnumWrappers.PlayerInfoAction.UPDATE_LISTED));
-			packet.getPlayerInfoDataLists().write(1, Collections.singletonList(playerInfoData));
-        }
-
-        wgp.getProperties().get("textures").clear();
-        wgp.getProperties().get("textures").add(new WrappedSignedProperty("textures", textureValue, textureSignature));
+		} else {
+			packet = new WrapperPlayServerPlayerInfoUpdate(
+					EnumSet.of(WrapperPlayServerPlayerInfoUpdate.Action.ADD_PLAYER, WrapperPlayServerPlayerInfoUpdate.Action.UPDATE_DISPLAY_NAME, WrapperPlayServerPlayerInfoUpdate.Action.UPDATE_LISTED),
+					new WrapperPlayServerPlayerInfoUpdate.PlayerInfo(profile, true, 50, GameMode.ADVENTURE, legacy.deserialize(displayName), Main.getRemoteChatSessionManager().getSession(playerToAdd))
+			);
+		}
 
         boolean fakePlayer = isFakePlayer.length >= 1 && isFakePlayer[0];
 		if (Main.getIsTab() && !fakePlayer) {
@@ -84,18 +84,17 @@ public class Packets {
 		return packet;
 	}
 
-	public static PacketContainer REMOVE_PLAYER(Player player, UUID playerToHide, boolean... isFakePlayer) {
-		PacketContainer packet;
+	public static PacketWrapper<?> REMOVE_PLAYER(Player player, UUID playerToHide, boolean... isFakePlayer) {
+		PacketWrapper<?> packet;
+
 		if (Main.getVersion()[0] < 19 || (Main.getVersion()[0] == 19 && Main.getVersion()[1] < 3)) {
-			packet = new PacketContainer(PacketType.Play.Server.PLAYER_INFO);
-			packet.getPlayerInfoAction().write(0, EnumWrappers.PlayerInfoAction.REMOVE_PLAYER);
-			packet.getPlayerInfoDataLists().write(0, Collections.singletonList(
-					new PlayerInfoData(new WrappedGameProfile(playerToHide, player.getName()), 50, NativeGameMode.ADVENTURE, WrappedChatComponent.fromText(player.getDisplayName()))
-			));
+			packet = new WrapperPlayServerPlayerInfo(
+					WrapperPlayServerPlayerInfo.Action.REMOVE_PLAYER,
+					new WrapperPlayServerPlayerInfo.PlayerData(legacy.deserialize(player.getDisplayName()), new UserProfile(playerToHide, player.getName()), GameMode.ADVENTURE, 50)
+			);
 
 		} else {
-			packet = new PacketContainer(PacketType.Play.Server.PLAYER_INFO_REMOVE);
-			packet.getUUIDLists().write(0, Collections.singletonList(playerToHide));
+			packet = new WrapperPlayServerPlayerInfoRemove(playerToHide);
 		}
 
 		boolean fakePlayer = isFakePlayer.length >= 1 && isFakePlayer[0];
@@ -106,218 +105,81 @@ public class Packets {
 		return packet;
 	}
 
-	public static PacketContainer NAMED_SOUND(Location loc, Sound sound) {
-		PacketContainer packet = new PacketContainer(PacketType.Play.Server.NAMED_SOUND_EFFECT);
-		packet.getSoundEffects().write(0, sound);
-		packet.getSoundCategories().write(0, EnumWrappers.SoundCategory.BLOCKS);
-		packet.getIntegers().write(0, (int) (loc.getX() * 8.0));
-		packet.getIntegers().write(1, (int) (loc.getY() * 8.0));
-		packet.getIntegers().write(2, (int) (loc.getZ() * 8.0));
-		packet.getFloat().write(0, 50F); // volume
-		packet.getFloat().write(1, 1F); // pitch
-
-		return packet;
+	public static WrapperPlayServerBlockChange BLOCK_CHANGE(Location loc, BlockData blockData) {
+		WrappedBlockState state = SpigotConversionUtil.fromBukkitBlockData(blockData);
+		// TODO: Check if correct block ID
+		return new WrapperPlayServerBlockChange(new Vector3i(loc.getBlockX(), loc.getBlockY(), loc.getBlockZ()), state.getGlobalId());
 	}
 
-	public static PacketContainer NAMED_SOUND(Location loc, Sound sound, Float volume, Float pitch) {
-		PacketContainer packet = NAMED_SOUND(loc, sound);
-		packet.getFloat().write(0, volume);
-		packet.getFloat().write(1, pitch);
-		return packet;
+	public static WrapperPlayServerSpawnEntity SPAWN_PLAYER(Location loc, int entityId, UUID uuid) {
+		return new WrapperPlayServerSpawnEntity(entityId, uuid, EntityTypes.PLAYER, SpigotConversionUtil.fromBukkitLocation(loc), 0f, 0, new Vector3d());
 	}
 
-	public static PacketContainer BLOCK_CHANGE(Location loc, WrappedBlockData wrappedData) {
-		PacketContainer packet = new PacketContainer(PacketType.Play.Server.BLOCK_CHANGE);
-		packet.getBlockPositionModifier().write(0, new BlockPosition(loc.getBlockX(), loc.getBlockY(), loc.getBlockZ()));
-		if (wrappedData != null) {
-			packet.getBlockData().write(0, wrappedData);
-		}
-		return packet;
+	public static WrapperPlayServerEntityHeadLook ENTITY_HEAD_ROTATION(int entityId, Location loc) {
+		return new WrapperPlayServerEntityHeadLook(entityId, loc.getYaw());
 	}
 
-	public static PacketContainer SPAWN_PLAYER(Location loc, int entityId, UUID uuid) {
-		PacketContainer packet = new PacketContainer(PacketType.Play.Server.SPAWN_ENTITY);
-		packet.getIntegers().write(0, entityId);
-		packet.getUUIDs().write(0, uuid);
-		packet.getEntityTypeModifier().write(0, EntityType.PLAYER);
-		packet.getDoubles().write(0, loc.getX()).write(1, loc.getY()).write(2, loc.getZ());
-		packet.getIntegers().write(5, toPacketRotation(loc.getYaw())).write(4, toPacketRotation(loc.getPitch()));
-		return packet;
+	public static WrapperPlayServerEntityRotation ENTITY_LOOK(int entityId, Location loc) {
+		return new WrapperPlayServerEntityRotation(entityId, loc.getYaw(), loc.getPitch(), true);
 	}
 
-	public static PacketContainer ENTITY_HEAD_ROTATION(int entityId, Location loc) {
-		PacketContainer packet = new PacketContainer(PacketType.Play.Server.ENTITY_HEAD_ROTATION);
-		packet.getIntegers().write(0, entityId);
-		packet.getBytes().write(0, toPackedByte(loc.getYaw()));
-//		packet.getBytes().write(0, (byte) loc.getYaw());
-		return packet;
+	public static WrapperPlayServerEntityEquipment PLAYER_ARMOR(ColorInfo color, int entityId) {
+		List<Equipment> equipment = new ArrayList<>();
+		equipment.add(new Equipment(EquipmentSlot.HELMET, SpigotConversionUtil.fromBukkitItemStack(new ItemStack(color.getGlass()))));
+		equipment.add(new Equipment(EquipmentSlot.CHEST_PLATE, SpigotConversionUtil.fromBukkitItemStack(Utils.getArmorColor(color, Material.LEATHER_CHESTPLATE))));
+		equipment.add(new Equipment(EquipmentSlot.LEGGINGS, SpigotConversionUtil.fromBukkitItemStack(Utils.getArmorColor(color, Material.LEATHER_LEGGINGS))));
+		equipment.add(new Equipment(EquipmentSlot.BOOTS, SpigotConversionUtil.fromBukkitItemStack(Utils.getArmorColor(color, Material.LEATHER_BOOTS))));
+		return new WrapperPlayServerEntityEquipment(entityId, equipment);
 	}
 
-	public static PacketContainer ENTITY_LOOK(int entityId, Location loc) {
-		PacketContainer packet = new PacketContainer(PacketType.Play.Server.ENTITY_LOOK);
-		packet.getIntegers().write(0, entityId);
-		packet.getBytes().write(0, toPackedByte(loc.getYaw())).write(1, toPackedByte((loc.getPitch())));
-		packet.getBooleans().write(0, true);
-		return packet;
+	public static WrapperPlayServerEntityEquipment ENTITY_EQUIPMENT_HEAD(int entityId, Material mat) {
+		return new WrapperPlayServerEntityEquipment(entityId, List.of(new Equipment(EquipmentSlot.HELMET, SpigotConversionUtil.fromBukkitItemStack(new ItemStack(mat)))));
 	}
 
-	public static PacketContainer PLAYER_ARMOR(ColorInfo color, int entityId) {
-		PacketContainer packet = new PacketContainer(PacketType.Play.Server.ENTITY_EQUIPMENT);
-		packet.getIntegers().write(0, entityId);
-		List<Pair<ItemSlot, ItemStack>> newSlotStack = new ArrayList<Pair<ItemSlot, ItemStack>>();
-		newSlotStack.add(new Pair<ItemSlot, ItemStack>(EnumWrappers.ItemSlot.HEAD, new ItemStack(color.getGlass())));
-		newSlotStack.add(new Pair<ItemSlot, ItemStack>(EnumWrappers.ItemSlot.CHEST, Utils.getArmorColor(color, Material.LEATHER_CHESTPLATE)));
-		newSlotStack.add(new Pair<ItemSlot, ItemStack>(EnumWrappers.ItemSlot.LEGS, Utils.getArmorColor(color, Material.LEATHER_LEGGINGS)));
-		newSlotStack.add(new Pair<ItemSlot, ItemStack>(EnumWrappers.ItemSlot.FEET, Utils.getArmorColor(color, Material.LEATHER_BOOTS)));
-		packet.getSlotStackPairLists().write(0, newSlotStack);
-		return packet;
+	public static WrapperPlayServerDestroyEntities DESTROY_ENTITY(int entityId) {
+		return new WrapperPlayServerDestroyEntities(entityId);
 	}
 
-	public static PacketContainer ENTITY_EQUIPMENT_HEAD(int entityId, Material mat) {
-		PacketContainer packet = new PacketContainer(PacketType.Play.Server.ENTITY_EQUIPMENT);
-		packet.getIntegers().write(0, entityId);
-		List<Pair<ItemSlot, ItemStack>> newSlotStack = new ArrayList<Pair<ItemSlot, ItemStack>>();
-		newSlotStack.add(new Pair<ItemSlot, ItemStack>(EnumWrappers.ItemSlot.HEAD, new ItemStack(mat)));
-		packet.getSlotStackPairLists().write(0, newSlotStack);
-		return packet;
+	public static WrapperPlayServerEntityMetadata PLAYER_SLEEPING(int entityId) {
+		List<EntityData<?>> data = new ArrayList<>();
+		data.add(new EntityData<>(6, EntityDataTypes.ENTITY_POSE, EntityPose.SLEEPING));
+		return new WrapperPlayServerEntityMetadata(entityId, data);
 	}
 
-	public static PacketContainer DESTROY_ENTITY(int entityId) {
-		PacketContainer packet = new PacketContainer(PacketType.Play.Server.ENTITY_DESTROY);
-		packet.getIntegerArrays().write(0, new int[]{entityId});
-		return packet;
+	public static WrapperPlayServerSpawnEntity ARMOR_STAND(Location loc, Integer entityId, UUID uuid) {
+		Location newLoc = loc.clone();
+		newLoc.setYaw(0);
+		newLoc.setPitch(0);
+
+		return new WrapperPlayServerSpawnEntity(
+				entityId,
+				uuid,
+				EntityTypes.ARMOR_STAND,
+				SpigotConversionUtil.fromBukkitLocation(newLoc),
+				0f,
+				0,
+				new Vector3d()
+		);
 	}
 
-	public static PacketContainer PLAYER_SLEEPING(int entityId) {
-		PacketContainer packet = new PacketContainer(PacketType.Play.Server.ENTITY_METADATA);
-		packet.getIntegers().write(0, entityId);
-		WrappedDataWatcher watcher = new WrappedDataWatcher();
-		Serializer serializer = Registry.get(EnumWrappers.getEntityPoseClass());
-		WrappedDataWatcherObject object = new WrappedDataWatcherObject(6, serializer);
-		watcher.setObject(object, EntityPose.SLEEPING.toNms());
-
-		if (Main.getVersion()[0] < 19 || (Main.getVersion()[0] == 19 && Main.getVersion()[1] < 3)) {
-			packet.getWatchableCollectionModifier().write(0, watcher.getWatchableObjects());
-
-		} else {
-			final List<WrappedDataValue> wrappedDataValueList = Lists.newArrayList();
-			watcher.getWatchableObjects().stream().filter(Objects::nonNull).forEach(entry -> {
-				final WrappedDataWatcher.WrappedDataWatcherObject dataWatcherObject = entry.getWatcherObject();
-				wrappedDataValueList.add(new WrappedDataValue(dataWatcherObject.getIndex(), dataWatcherObject.getSerializer(), entry.getRawValue()));
-			});
-			packet.getDataValueCollectionModifier().write(0, wrappedDataValueList);
-		}
-
-		return packet;
+	public static WrapperPlayServerEntityTeleport ENTITY_TELEPORT(int entityId, Location loc) {
+		return new WrapperPlayServerEntityTeleport(entityId, SpigotConversionUtil.fromBukkitLocation(loc), true);
 	}
 
-	public static PacketContainer PARTICLES(Location loc, Particle particle, Object data, Integer count, float offSetX, float offSetY, float offSetZ) {
-		PacketContainer packet = new PacketContainer(PacketType.Play.Server.WORLD_PARTICLES);
-		packet.getNewParticles().write(0, WrappedParticle.create(particle, data));
-		packet.getIntegers().write(0, count); // count
-		packet.getFloat().write(0, offSetX).write(1, offSetY).write(2, offSetZ); // offset
-		packet.getBooleans().write(0, false); // long distance
-		packet.getDoubles().write(0, loc.getX()).write(1, loc.getY()).write(2, loc.getZ());
-		return packet;
-	}
-
-	public static PacketContainer ARMOR_STAND(Location loc, Integer entityId, UUID uuid) {
-		PacketContainer packet = new PacketContainer(PacketType.Play.Server.SPAWN_ENTITY);
-
-		packet.getIntegers().write(0, entityId); // entity id
-		packet.getUUIDs().write(0, uuid); // uuid
-		packet.getEntityTypeModifier().write(0, EntityType.ARMOR_STAND);
-
-		packet.getDoubles().write(0, loc.getX());
-		packet.getDoubles().write(1, loc.getY()); // location
-		packet.getDoubles().write(2, loc.getZ());
-		packet.getIntegers().write(4, 0); // yaw & pitch ?
-		packet.getIntegers().write(5, 0);
-
-		return packet;
-	}
-
-	public static PacketContainer ENTITY_TELEPORT(int entityId, Location loc) {
-		PacketContainer packet = new PacketContainer(PacketType.Play.Server.ENTITY_TELEPORT);
-		packet.getIntegers().write(0, entityId); // entity id
-		packet.getDoubles().write(0, loc.getX());
-		packet.getDoubles().write(1, loc.getY());
-		packet.getDoubles().write(2, loc.getZ());
-		return packet;
-	}
-
-	public static PacketContainer METADATA_SKIN(int entityId, Player player, boolean isGhost) {
-		PacketContainer packet = new PacketContainer(PacketType.Play.Server.ENTITY_METADATA);
-		packet.getIntegers().write(0, entityId);
-		WrappedDataWatcher watcher = new WrappedDataWatcher();
-		Serializer serializer = Registry.get(Byte.class);
-		if (player != null) {
-			watcher.setEntity(player);
-		}
-
-		// To show all the skin overlay parts
-		watcher.setObject(17, serializer, (byte) (0x01 | 0x02 | 0x04 | 0x08 | 0x10 | 0x20 | 0x40));
+	public static WrapperPlayServerEntityMetadata METADATA_SKIN(int entityId, boolean isGhost) {
+		List<EntityData<?>> data = new ArrayList<>();
 
 		if (isGhost) {
-			watcher.setObject(0, serializer, (byte) (0x20));
+			data.add(new EntityData<>(0, EntityDataTypes.BYTE, (byte) 0x20));
 		}
 
-		if (Main.getVersion()[0] < 19 || (Main.getVersion()[0] == 19 && Main.getVersion()[1] < 3)) {
-			packet.getWatchableCollectionModifier().write(0, watcher.getWatchableObjects());
+		data.add(new EntityData<>(17, EntityDataTypes.BYTE, (byte) (0x01 | 0x02 | 0x04 | 0x08 | 0x10 | 0x20 | 0x40)));
 
-		} else {
-			final List<WrappedDataValue> wrappedDataValueList = Lists.newArrayList();
-			watcher.getWatchableObjects().stream().filter(Objects::nonNull).forEach(entry -> {
-				final WrappedDataWatcher.WrappedDataWatcherObject dataWatcherObject = entry.getWatcherObject();
-				wrappedDataValueList.add(new WrappedDataValue(dataWatcherObject.getIndex(), dataWatcherObject.getSerializer(), entry.getRawValue()));
-			});
-			packet.getDataValueCollectionModifier().write(0, wrappedDataValueList);
-		}
 
-		return packet;
+		return new WrapperPlayServerEntityMetadata(entityId, data);
 	}
-	
-//	public static PacketContainer METADATA_INVIS(int entityId, Player player) {
-//		PacketContainer packet = new PacketContainer(PacketType.Play.Server.ENTITY_METADATA);
-//		packet.getIntegers().write(0, entityId);
-//		WrappedDataWatcher watcher = new WrappedDataWatcher();
-//		Serializer serializer = Registry.get(Byte.class);
-//		if (player != null) {
-//			watcher.setEntity(player);
-//		}
-//		watcher.setObject(0, serializer, (byte) (0x20));
-//		packet.getWatchableCollectionModifier().write(0, watcher.getWatchableObjects());
-//		return packet;
-//	}
 
-//	public static PacketContainer ENTITY_INVIS(int entityId) {
-//		PacketContainer packet = new PacketContainer(PacketType.Play.Server.ENTITY_METADATA);
-//		packet.getIntegers().write(0, entityId);
-//		WrappedDataWatcher watcher = new WrappedDataWatcher();
-//		Serializer serializer = Registry.get(Byte.class);
-//		watcher.setObject(0, serializer, (byte) (0x20));
-//		packet.getWatchableCollectionModifier().write(0, watcher.getWatchableObjects());
-//		return packet;
-//	}
-
-//	public static PacketContainer ARMOR_STAND_ROTATION(int entityId, Vector3F vector) {
-//		PacketContainer packet = new PacketContainer(PacketType.Play.Server.ENTITY_METADATA);
-//		packet.getIntegers().write(0, entityId);
-//
-//		WrappedDataWatcher watcher = new WrappedDataWatcher();
-//		watcher.setObject(15, Registry.getVectorSerializer(), vector);
-//		packet.getWatchableCollectionModifier().write(0, watcher.getWatchableObjects());
-//		return packet;
-//	}
-
-//	public static PacketContainer GLOW(Player player) {
-//		PacketContainer packet = new PacketContainer(PacketType.Play.Server.ENTITY_METADATA);
-//		packet.getIntegers().write(0, player.getEntityId()); // Set packet's entity id
-//		WrappedDataWatcher watcher = new WrappedDataWatcher(); // Create data watcher, the Entity Metadata packet requires this
-//		Serializer serializer = Registry.get(Byte.class); // Found this through google, needed for some stupid reason
-//		watcher.setEntity(player); // Set the new data watcher's target
-//		watcher.setObject(0, serializer, (byte) (0x40)); // Set status to glowing, found on protocol page
-//		packet.getWatchableCollectionModifier().write(0, watcher.getWatchableObjects()); // Make the packet's datawatcher the one we created
-//		return packet;
-//	}
+	public static WrapperPlayServerEntityAnimation HURT_ANIMATION(int entityId) {
+		return new WrapperPlayServerEntityAnimation(entityId, WrapperPlayServerEntityAnimation.EntityAnimationType.HURT);
+	}
 }

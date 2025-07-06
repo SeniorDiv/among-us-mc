@@ -60,7 +60,7 @@ public class FakePlayer {
 		Packets.sendPacket(player, Packets.ADD_PLAYER(player, this.uuid, this.name, this.customName, this.textureValue, this.textureSignature, true));
 
 		Packets.sendPacket(player, Packets.SPAWN_PLAYER(loc, this.entityId, this.uuid));
-		Packets.sendPacket(player, Packets.METADATA_SKIN(this.entityId, pInfo.getPlayer(), false));
+		Packets.sendPacket(player, Packets.METADATA_SKIN(this.entityId, false));
 		if (!dead) {
 			Packets.sendPacket(player, Packets.ENTITY_HEAD_ROTATION(this.entityId, loc));
 			Packets.sendPacket(player, Packets.ENTITY_LOOK(this.entityId, loc));

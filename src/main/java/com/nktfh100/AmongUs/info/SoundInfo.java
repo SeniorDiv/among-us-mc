@@ -1,18 +1,18 @@
 package com.nktfh100.AmongUs.info;
 
 import org.bukkit.Location;
-import org.bukkit.Sound;
 
-import com.comphenix.protocol.events.PacketContainer;
-import com.nktfh100.AmongUs.utils.Packets;
 import com.nktfh100.AmongUs.utils.Utils;
+import org.bukkit.Sound;
+import org.bukkit.SoundCategory;
+import org.bukkit.entity.Player;
 
 public class SoundInfo {
 
-	private Sound sound;
-	private float volume;
-	private float pitch;
-	private int delay;
+	private final Sound sound;
+	private final float volume;
+	private final float pitch;
+	private final int delay;
 
 	private float volume2 = -1F;
 	private float pitch2 = -1F; // for random
@@ -28,8 +28,8 @@ public class SoundInfo {
 		this.delay2 = delay2;
 	}
 
-	public PacketContainer getPacket(Location loc) {
-		return Packets.NAMED_SOUND(loc, this.sound, this.getVolume(), this.getPitch());
+	public void playSound(Player player, Location loc) {
+		player.playSound(loc, sound, SoundCategory.BLOCKS, getVolume(), getPitch());
 	}
 
 	public Sound getSound() {
