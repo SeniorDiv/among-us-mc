@@ -5,6 +5,12 @@ plugins {
 group "com.nktfh100"
 version "3.3.4"
 
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
 repositories {
     mavenCentral()
     maven("https://hub.spigotmc.org/nexus/content/repositories/snapshots/")
@@ -33,4 +39,10 @@ dependencies {
 
     compileOnly(files("libs/VentureChat.jar")) // 3.7.1
     //compileOnly(files("libs/CMI-API.jar") // 9.0.0.0
+}
+
+tasks {
+    compileJava {
+        options.release = 21
+    }
 }
