@@ -3,7 +3,7 @@ plugins {
 }
 
 group "com.nktfh100"
-version "3.3.4"
+version "4.0"
 
 java {
     toolchain {
@@ -28,7 +28,7 @@ repositories {
 dependencies {
     // This is temporary until the plugin is rewritten...
     compileOnly("org.spigotmc:spigot-api:1.19.4-R0.1-SNAPSHOT")
-    compileOnly("com.github.retrooper:packetevents-spigot:2.8.0")
+    compileOnly("com.github.retrooper:packetevents-spigot:2.9.1")
     compileOnly("me.filoghost.holographicdisplays:holographicdisplays-api:3.0.0")
     compileOnly("org.black_ixx:playerpoints:3.2.7")
     compileOnly("me.clip:placeholderapi:2.11.6")
@@ -43,6 +43,6 @@ dependencies {
 
 tasks {
     compileJava {
-        options.release = 21
+        options.release = 17
     }
 }

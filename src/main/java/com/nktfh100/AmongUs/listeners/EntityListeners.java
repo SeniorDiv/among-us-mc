@@ -15,25 +15,40 @@ public class EntityListeners implements PacketListener {
     public void onPacketSend(PacketSendEvent event) {
         Player player = event.getPlayer();
 
-        int entityId = switch (event.getPacketType()) {
-            case PacketType.Play.Server.ENTITY_EQUIPMENT -> new WrapperPlayServerEntityEquipment(event).getEntityId();
-            case PacketType.Play.Server.ENTITY_ANIMATION -> new WrapperPlayServerEntityAnimation(event).getEntityId();
-            case PacketType.Play.Server.COLLECT_ITEM -> new WrapperPlayServerCollectItem(event).getCollectorEntityId();
-            case PacketType.Play.Server.SPAWN_EXPERIENCE_ORB -> new WrapperPlayServerSpawnExperienceOrb(event).getEntityId();
-            case PacketType.Play.Server.ENTITY_VELOCITY -> new WrapperPlayServerEntityVelocity(event).getEntityId();
-            case PacketType.Play.Server.ENTITY_RELATIVE_MOVE -> new WrapperPlayServerEntityRelativeMove(event).getEntityId();
-            case PacketType.Play.Server.ENTITY_HEAD_LOOK -> new WrapperPlayServerEntityHeadLook(event).getEntityId();
-            case PacketType.Play.Server.ENTITY_TELEPORT -> new WrapperPlayServerEntityTeleport(event).getEntityId();
-            case PacketType.Play.Server.ENTITY_ROTATION -> new WrapperPlayServerEntityRotation(event).getEntityId();
-            case PacketType.Play.Server.ENTITY_STATUS -> new WrapperPlayServerEntityStatus(event).getEntityId();
-            case PacketType.Play.Server.ATTACH_ENTITY -> new WrapperPlayServerAttachEntity(event).getHoldingId();
-            case PacketType.Play.Server.ENTITY_METADATA -> new WrapperPlayServerEntityMetadata(event).getEntityId();
-            case PacketType.Play.Server.ENTITY_EFFECT -> new WrapperPlayServerEntityEffect(event).getEntityId();
-            case PacketType.Play.Server.REMOVE_ENTITY_EFFECT -> new WrapperPlayServerRemoveEntityEffect(event).getEntityId();
-            case PacketType.Play.Server.BLOCK_BREAK_ANIMATION -> new WrapperPlayServerBlockBreakAnimation(event).getEntityId();
-            case PacketType.Play.Server.ENTITY_RELATIVE_MOVE_AND_ROTATION -> new WrapperPlayServerEntityRelativeMoveAndRotation(event).getEntityId();
-            default -> -1;
-        };
+        int entityId = -1;
+        if (event.getPacketType().equals(PacketType.Play.Server.ENTITY_EQUIPMENT)) {
+            entityId = new WrapperPlayServerEntityEquipment(event).getEntityId();
+        } else if (event.getPacketType().equals(PacketType.Play.Server.ENTITY_ANIMATION)) {
+            entityId = new WrapperPlayServerEntityAnimation(event).getEntityId();
+        } else if (event.getPacketType().equals(PacketType.Play.Server.COLLECT_ITEM)) {
+            entityId = new WrapperPlayServerCollectItem(event).getCollectorEntityId();
+        } else if (event.getPacketType().equals(PacketType.Play.Server.SPAWN_EXPERIENCE_ORB)) {
+            entityId = new WrapperPlayServerSpawnExperienceOrb(event).getEntityId();
+        } else if (event.getPacketType().equals(PacketType.Play.Server.ENTITY_VELOCITY)) {
+            entityId = new WrapperPlayServerEntityVelocity(event).getEntityId();
+        } else if (event.getPacketType().equals(PacketType.Play.Server.ENTITY_RELATIVE_MOVE)) {
+            entityId = new WrapperPlayServerEntityRelativeMove(event).getEntityId();
+        } else if (event.getPacketType().equals(PacketType.Play.Server.ENTITY_HEAD_LOOK)) {
+            entityId = new WrapperPlayServerEntityHeadLook(event).getEntityId();
+        } else if (event.getPacketType().equals(PacketType.Play.Server.ENTITY_TELEPORT)) {
+            entityId = new WrapperPlayServerEntityTeleport(event).getEntityId();
+        } else if (event.getPacketType().equals(PacketType.Play.Server.ENTITY_ROTATION)) {
+            entityId = new WrapperPlayServerEntityRotation(event).getEntityId();
+        } else if (event.getPacketType().equals(PacketType.Play.Server.ENTITY_STATUS)) {
+            entityId = new WrapperPlayServerEntityStatus(event).getEntityId();
+        } else if (event.getPacketType().equals(PacketType.Play.Server.ATTACH_ENTITY)) {
+            entityId = new WrapperPlayServerAttachEntity(event).getHoldingId();
+        } else if (event.getPacketType().equals(PacketType.Play.Server.ENTITY_METADATA)) {
+            entityId = new WrapperPlayServerEntityMetadata(event).getEntityId();
+        } else if (event.getPacketType().equals(PacketType.Play.Server.ENTITY_EFFECT)) {
+            entityId = new WrapperPlayServerEntityEffect(event).getEntityId();
+        } else if (event.getPacketType().equals(PacketType.Play.Server.REMOVE_ENTITY_EFFECT)) {
+            entityId = new WrapperPlayServerRemoveEntityEffect(event).getEntityId();
+        } else if (event.getPacketType().equals(PacketType.Play.Server.BLOCK_BREAK_ANIMATION)) {
+            entityId = new WrapperPlayServerBlockBreakAnimation(event).getEntityId();
+        } else if (event.getPacketType().equals(PacketType.Play.Server.ENTITY_RELATIVE_MOVE_AND_ROTATION)) {
+            entityId = new WrapperPlayServerEntityRelativeMoveAndRotation(event).getEntityId();
+        }
 
         if (entityId == -1) return;
 
