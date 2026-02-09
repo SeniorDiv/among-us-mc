@@ -173,7 +173,12 @@ public class Packets {
 			data.add(new EntityData<>(0, EntityDataTypes.BYTE, (byte) 0x20));
 		}
 
-		data.add(new EntityData<>(17, EntityDataTypes.BYTE, (byte) (0x01 | 0x02 | 0x04 | 0x08 | 0x10 | 0x20 | 0x40)));
+		if (Main.getVersion()[0] < 21 || (Main.getVersion()[0] == 21 && Main.getVersion()[1] < 9)) {
+			data.add(new EntityData<>(17, EntityDataTypes.BYTE, (byte) (0x01 | 0x02 | 0x04 | 0x08 | 0x10 | 0x20 | 0x40)));
+		} else {
+			data.add(new EntityData<>(16, EntityDataTypes.BYTE, (byte) (0x01 | 0x02 | 0x04 | 0x08 | 0x10 | 0x20 | 0x40)));
+		}
+
 
 
 		return new WrapperPlayServerEntityMetadata(entityId, data);

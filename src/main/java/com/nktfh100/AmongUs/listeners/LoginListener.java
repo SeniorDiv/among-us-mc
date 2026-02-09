@@ -5,7 +5,9 @@ import com.github.retrooper.packetevents.event.PacketSendEvent;
 import com.github.retrooper.packetevents.protocol.packettype.PacketType;
 import com.github.retrooper.packetevents.wrapper.login.server.WrapperLoginServerLoginSuccess;
 import com.nktfh100.AmongUs.main.Main;
-import org.bukkit.entity.Player;
+import com.nktfh100.AmongUs.utils.Logger;
+
+import java.util.logging.Level;
 
 public class LoginListener implements PacketListener {
     @Override
@@ -13,6 +15,6 @@ public class LoginListener implements PacketListener {
         if (event.getPacketType() != PacketType.Login.Server.LOGIN_SUCCESS) return;
 
         WrapperLoginServerLoginSuccess packet = new WrapperLoginServerLoginSuccess(event);
-        Main.getRemoteChatSessionManager().addSession(((Player) event.getPlayer()).getUniqueId(), packet.readRemoteChatSession());
+        Main.getRemoteChatSessionManager().addSession(packet.getUserProfile().getUUID(), packet.readRemoteChatSession());
     }
 }
