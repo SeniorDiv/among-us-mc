@@ -385,7 +385,7 @@ public class PlayerInfo {
 	}
 
 	public void createImposterHolo() {
-		this.imposterHolo = ImposterHologram.createHologram(this.getPlayer().getLocation().add(0, 2.8, 0), "imposterHolo");
+		this.imposterHolo = ImposterHologram.createHologram(this.getPlayer().getLocation().add(0, 2.8, 0), "imposterHolo_" + player.getName());
 		this.imposterHolo.addLineWithItem(Utils.createItem(Material.RED_CONCRETE, " "));
 		this.imposterHolo.setGlobalVisibility(false);
 		for (PlayerInfo pInfo1 : this.arena.getGameImposters()) {
