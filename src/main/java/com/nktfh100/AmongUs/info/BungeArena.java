@@ -3,7 +3,7 @@ package com.nktfh100.AmongUs.info;
 import com.nktfh100.AmongUs.enums.GameState;
 
 public class BungeArena {
-
+ 
 	private String server;
 	private String name;
 	private GameState gameState;
